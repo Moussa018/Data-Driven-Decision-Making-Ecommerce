@@ -10,8 +10,6 @@ Le système s'articule autour d'une architecture modulaire qui transforme les do
 
 
 ```
-
-```
               ┌─────────────────────────────────────┐
               │        SOURCES DE DONNÉES           │
               │  (Transactions Olist + Avis Client) │
@@ -43,9 +41,6 @@ Le système s'articule autour d'une architecture modulaire qui transforme les do
 
 ```
 
-```
-
----
 
 ##  Description des Fichiers du Dépôt
 
@@ -111,7 +106,6 @@ L'interface Streamlit propose un basculement dynamique selon le profil utilisate
 4. **Vue Technique (SHAP Importance)** : Transparence totale des features décisionnelles globales issues des valeurs SHAP.
 5. **Simulateur de Churn en Direct** : Outil interactif permettant d'ajuster les métriques d'un client pour prédire son score d'attrition en temps réel.
 
-```
 
 
 
