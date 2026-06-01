@@ -51,7 +51,7 @@ Le système s'articule autour d'une architecture modulaire qui transforme les do
 
 ---
 
-## ⚙️ Instructions d'Installation et Lancement
+##  Instructions d'Installation et Lancement
 
 Suivez ces étapes pour installer et exécuter le projet localement sur votre machine :
 
