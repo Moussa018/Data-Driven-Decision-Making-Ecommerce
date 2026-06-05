@@ -1,6 +1,8 @@
-# Data-Driven Decision Making : Système Prédictif du Churn E-Commerce
+# Data-Driven Decision Making : Système Prédictif du Risque d'Insatisfaction E-Commerce
 
-Ce projet a été développé dans le cadre du module **Data-Driven Decision Making**. Il implémente l'intégralité d'un pipeline décisionnel basé sur la donnée, depuis le cadrage métier jusqu'à la mesure d'impact, en passant par le déploiement d'un système d'aide à la décision interactif pour optimiser la rétention client (Churn) à 30 jours.
+Ce projet a été développé dans le cadre du module **Data-Driven Decision Making**. Il implémente l'intégralité d'un pipeline décisionnel basé sur la donnée, depuis le cadrage métier jusqu'à la mesure d'impact, en passant par le déploiement d'un système d'aide à la décision interactif.
+
+> **Note méthodologique.** Le dataset Olist est composé à ~97 % d'acheteurs uniques : une cible de *ré-achat* (« churn » littéral) y est statistiquement dégénérée (> 99 % d'une seule classe) et favorise les fuites de données. Nous modélisons donc le **risque d'expérience client négative** (note ≤ 2/5), déterminant avancé et actionnable de l'attrition. Toutes les variables explicatives sont **connues avant la rédaction de l'avis** (aucune fuite), ce qui donne des performances réalistes (AUC ≈ 0,74) plutôt qu'un AUC artificiel de 1,0.
 
 ---
 
@@ -11,20 +13,25 @@ Le système s'articule autour d'une architecture modulaire qui transforme les do
 
 ```
               ┌─────────────────────────────────────┐
-              │        SOURCES DE DONNÉES           │
-              │  (Transactions Olist + Avis Client) │
+              │   5 SOURCES OLIST (enrichissement)  │
+              │ orders+customers+reviews+items+pay  │
               └──────────────────┬──────────────────┘
                                  │
                                  ▼
               ┌─────────────────────────────────────┐
-              │   INGESTION & NETTOYAGE (Colab)     │
-              │   (Fusion Left Join, Imputation MD) │
+              │   AUDIT, NETTOYAGE & WINSORISATION   │
+              │  (clé customer_unique_id, no leak)   │
               └──────────────────┬──────────────────┘
                                  │
                                  ▼
               ┌─────────────────────────────────────┐
-              │      FEATURE ENGINEERING & ML       │
-              │   (Scikit-Learn, XGBoost, SHAP)     │
+              │  FEATURE ENG. + 3 MODÈLES + TUNING   │
+              │  (Scikit-Learn, XGBoost, SHAP)       │
+              └──────────────────┬──────────────────┘
+                                 │
+                                 ▼
+              ┌─────────────────────────────────────┐
+              │   artifacts/ (modèle + KPIs + SHAP)  │
               └──────────────────┬──────────────────┘
                                  │
                                  ▼
@@ -36,7 +43,7 @@ Le système s'articule autour d'une architecture modulaire qui transforme les do
                          ▼                     ▼
               ┌──────────────────┐   ┌──────────────────┐
               │ VUES DÉCISIONNEL │   │ SIMULATEUR       │
-              │ (Dir/Mkt/Ops/Tech)│   │ PREDICTIF (ML)   │
+              │(Dir/Mkt/Ops/Tech)│   │ (MODÈLE RÉEL ML) │
               └──────────────────┘   └──────────────────┘
 
 ```
@@ -44,10 +51,11 @@ Le système s'articule autour d'une architecture modulaire qui transforme les do
 
 ##  Description des Fichiers du Dépôt
 
-* **`notebook_analyse_decisionnelle.ipynb`** : Le Notebook Jupyter principal (développé sur Google Colab). Il contient l'audit des données, l'analyse statistique exploratoire (EDA), les tests d'hypothèses ($t\text{-test}$), le clustering $K\text{-Means}$ et l'entraînement comparatif des 3 modèles de Machine Learning.
-* **`app.py`** : Le code source Python de l'application interactive **Streamlit** matérialisant le dashboard d'aide à la décision avec ses 5 vues spécifiques.
-* **`requirements.txt`** : La liste des dépendances et bibliothèques Python nécessaires avec leurs versions pour garantir la reproductibilité complète du projet.
-* **`A_B_Testing_Plan.md`** : Document protocolaire détaillant le plan d'expérimentation mathématique pour valider l'impact financier des recommandations.
+* **`notebook_analyse_decisionnelle.ipynb`** : Le Notebook Jupyter principal. Il télécharge automatiquement le dataset Olist (via `kagglehub`), réalise l'audit des données, l'EDA, **quatre** tests statistiques ($t\text{-test}$, Mann-Whitney, $\chi^2$, ANOVA), le clustering $K\text{-Means}$ (choix de $k$ par silhouette), l'entraînement comparatif des 3 modèles avec **tuning des hyperparamètres**, et l'interprétabilité **SHAP** (globale + locale).
+* **`app.py`** : L'application **Streamlit** (5 vues). Le simulateur et la liste d'alerte appellent le **modèle réel** chargé depuis `artifacts/`.
+* **`artifacts/`** : Modèle entraîné (`churn_model.joblib`), KPIs (`kpis.json`), profils de segments, importances SHAP et tableau comparatif — générés par le notebook et consommés par le dashboard.
+* **`requirements.txt`** : Dépendances Python épinglées pour la reproductibilité.
+* **`A_B_Testing_Plan.md`** : Plan d'expérimentation A/B pour valider l'impact des recommandations de rétention.
 
 ---
 
@@ -100,13 +108,8 @@ Une fois la commande exécutée, votre navigateur internet s'ouvrira automatique
 
 L'interface Streamlit propose un basculement dynamique selon le profil utilisateur :
 
-1. **Vue Direction (Stratégique)** : Suivi du Chiffre d'Affaires global, du taux de Churn macro et du ROI simulé.
-2. **Vue Marketing (Segmentation)** : Analyse descriptive des groupes de clients issus du clustering pour affiner le ciblage.
-3. **Vue Opérations (Liste d'Alerte)** : Liste chirurgicale des clients à haut risque identifiés par XGBoost pour des actions de phoning prioritaires.
-4. **Vue Technique (SHAP Importance)** : Transparence totale des features décisionnelles globales issues des valeurs SHAP.
-5. **Simulateur de Churn en Direct** : Outil interactif permettant d'ajuster les métriques d'un client pour prédire son score d'attrition en temps réel.
-
-
-
-
-```
+1. **Vue Direction (Stratégique)** : KPIs mesurés (taux d'insatisfaction, retard de livraison, AUC, ROI) et tableau comparatif des modèles.
+2. **Vue Marketing (Segmentation)** : Profils réels des segments K-Means et identification du segment prioritaire.
+3. **Vue Opérations (Liste d'Alerte)** : Commandes à risque scorées par le **modèle XGBoost réel** pour des actions prioritaires.
+4. **Vue Technique (SHAP Importance)** : Importances globales réelles (valeurs |SHAP| moyennes).
+5. **Simulateur de Risque en Direct** : Ajustement du profil d'une commande pour obtenir le score du **modèle réel** (`predict_proba`) en temps réel.
