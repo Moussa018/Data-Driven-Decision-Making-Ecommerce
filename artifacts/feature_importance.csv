@@ -1,0 +1,14 @@
+feature,mean_abs_shap
+delay_vs_estimate,0.4510857
+n_items,0.2707433
+delivery_days,0.24799557
+reg_AUTRE,0.056787558
+freight,0.04912144
+installments,0.033414364
+approval_hours,0.01988857
+price,0.017312363
+payment_value,0.016037712
+reg_RJ,0.011765426
+freight_ratio,0.010630306
+reg_SP,0.0041540237
+reg_MG,0.0013613289

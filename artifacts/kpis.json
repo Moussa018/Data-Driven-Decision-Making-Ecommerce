@@ -1,0 +1,9 @@
+{
+  "dissatisfaction_rate": 0.1277,
+  "n_orders": 95809,
+  "late_rate": 0.0666,
+  "best_auc": 0.7437,
+  "best_recall": 0.5353,
+  "roi_pct": 20.0,
+  "gain_net_eur": 6549.0
+}
