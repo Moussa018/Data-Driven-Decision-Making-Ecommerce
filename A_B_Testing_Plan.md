@@ -5,12 +5,12 @@
 
 ## 1. Cadrage Stratégique & Hypothèses
 
-L'analyse exploratoire et la modélisation prédictive ont mis en évidence qu'une baisse de la satisfaction client (`Note_Moyenne_Satisfaction`) combinée à une augmentation de l'inactivité (`Jours_Depuis_Dernier_Achat`) constituent les signaux faibles majeurs précédant l'attrition (Churn). 
+L'analyse exploratoire et la modélisation prédictive ont mis en évidence que **l'expérience de livraison** (`delay_vs_estimate`, `delivery_days`) est le déclencheur n°1 de l'**insatisfaction client** (note ≤ 2), elle-même signal avancé majeur de l'attrition (Churn). Le modèle XGBoost (AUC ≈ 0,74, rappel ≈ 0,54) permet de **flaguer en temps réel les commandes à haut risque d'insatisfaction**.
 
-Pour traduire ces insights en valeur économique, nous mettons en place un plan d'A/B Testing standardisé visant à valider l'impact d'une campagne marketing incitative de rétention.
+Pour traduire ces insights en valeur économique, nous mettons en place un plan d'A/B Testing standardisé visant à valider l'impact d'une campagne incitative de rétention déclenchée sur ce segment à risque.
 
 ### 1.1 Formulations des Hypothèses Statistiques
-* **Hypothèse Nulle ($H_0$) :** L'attribution automatisée d'un coupon de réduction de 10% aux clients prédits "à haut risque" par le modèle XGBoost n'a aucun effet significatif sur le taux de churn à 30 jours.
+* **Hypothèse Nulle ($H_0$) :** L'attribution automatisée d'un coupon de réduction de 10% aux clients dont la commande est prédite "à haut risque d'insatisfaction" par le modèle XGBoost n'a aucun effet significatif sur le taux de churn à 30 jours.
 $$\text{Taux de Churn}_{\text{Groupe A}} = \text{Taux de Churn}_{\text{Groupe B}}$$
 
 * **Hypothèse Alternative ($H_1$) :** L'attribution automatisée d'un coupon de réduction de 10% aux clients prédits "à haut risque" par le modèle XGBoost réduit de manière statistiquement significative le taux de churn à 30 jours.
@@ -21,7 +21,7 @@ $$\text{Taux de Churn}_{\text{Groupe B}} < \text{Taux de Churn}_{\text{Groupe A}
 ## 2. Protocole d'Échantillonnage & Paramètres du Test
 
 ### 2.1 Définition de la Population Cible
-Le test cible exclusivement les utilisateurs appartenant au **Segment 2** (Clients insatisfaits à risque) identifiés lors de la phase de clustering et présentant un score de probabilité de Churn calculé par XGBoost supérieur ou égal à **75%**.
+Le test cible exclusivement les commandes dont le **score de risque d'insatisfaction** calculé par le modèle XGBoost dépasse le seuil opérationnel retenu (par défaut **≥ 50%**, ajustable selon l'arbitrage précision/rappel), c'est-à-dire le segment logistique défaillant identifié lors du clustering (délai et retard de livraison élevés).
 
 ### 2.2 Constitution des Groupes
 Dès qu'un client franchit le seuil d'alerte, il est assigné de manière aléatoire et uniforme (Randomized Assignment) à l'un des deux groupes :
@@ -59,12 +59,14 @@ La décision business de déployer l'algorithme à grande échelle sera validée
 
 ## 4. Analyse d'Impact & ROI Prévisionnel
 
-Si le critère de succès statistique est validé (baisse du churn de 5 points de pourcentage sur le volume annuelisé), l'impact financier est modélisé ainsi sur notre base :
+Si le critère de succès statistique est validé (baisse du churn de 5 points de pourcentage sur la population ciblée), l'impact financier est modélisé ainsi. **Point méthodologique clé :** le coût d'incitation doit compter **tous les coupons envoyés** au groupe ciblé, et non seulement ceux qui sont utilisés — c'est l'erreur qui gonflait artificiellement le ROI à +900 % dans une version antérieure.
 
 | Indicateur Financier | Formule de Calcul | Valeur Estimée |
 | :--- | :--- | :--- |
-| Perte Churn Initiale | $20 000 \text{ clients perdus} \times 50€ \text{ (Marge Moyenne)}$ | $1 000 000 € / \text{an}$ |
-| Volume de Rétention (MDE 5%) | $100 000 \text{ clients} \times 5\%$ saved | $5 000 \text{ clients sauvés}$ |
-| Chiffre d'Affaires Brut Sauvé | $5 000 \text{ clients} \times 50€$ | **$+250 000 €$** |
-| Coût de l'incitation marketing | $5 000 \text{ coupons utilisés} \times 5€ \text{ (Valeur du coupon)}$ | $-25 000 €$ |
-| **Gain Net (ROI)** | $(250 000€ - 25 000€) / 25 000€$ | **$+900\%$** |
+| Population ciblée (à risque, /an) | $100 000 \text{ commandes} \times 12{,}8\% \text{ (taux d'insatisfaction mesuré)}$ | $\approx 12\,800 \text{ ciblés}$ |
+| Volume de Rétention (MDE 5 pts) | $12\,800 \times 5\%$ | $640 \text{ clients sauvés}$ |
+| Chiffre d'Affaires Brut Sauvé | $640 \times 50€ \text{ (marge moyenne)}$ | **$+32\,000 €$** |
+| Coût de l'incitation (coupons **envoyés**) | $12\,800 \times 5€$ | $-64\,000 €$ |
+| **Gain Net** | $32\,000€ - 64\,000€$ | **$-32\,000 €$** |
+
+> Avec un envoi indifférencié à tout le segment, l'opération est **déficitaire** : c'est précisément pourquoi le **ciblage par le modèle** (rappel ≈ 0,54, score ≥ seuil) est indispensable pour ne couponner que les commandes réellement à risque et atteindre un ROI positif. Le calcul détaillé et data-driven du ROI net figure dans la cellule *« Business Case chiffré »* du notebook (`notebook_analyse_decisionnelle.ipynb`), qui dérive l'ensemble des paramètres des chiffres réellement observés.
